@@ -3,13 +3,14 @@
 Failures expose only test names/counts and stable assertion messages, never a
 text/mapping diff. Fixed expected vectors are independent of production code.
 """
+import ast
 import copy
 import json
 from pathlib import Path
 import re
 import unittest
 
-from rm_app_harness import fixed_candidates, load_app, post, restore
+from rm_app_harness import ROOT, definitions, fixed_candidates, load_app, post, restore
 
 VECTORS = json.loads((Path(__file__).parent / "fixtures/rm-exact-surface-v1.json")
                      .read_text(encoding="utf-8"))["cases"]
@@ -25,6 +26,46 @@ def entity(start, end, *, label="FULLNAME", score=0.9, validated=False, source="
 class ExactSurface(unittest.TestCase):
     def same(self, actual, expected, code):
         self.assertTrue(actual == expected, code)
+
+    def test_app_has_no_unused_normalizer(self):
+        tree = ast.parse((ROOT / "src/app/app.py").read_text(encoding="utf-8"))
+        self.assertTrue(not any(isinstance(node, ast.FunctionDef) and node.name == "_norm"
+                                for node in tree.body), "remove_unused_app_normalizer")
+
+    def test_docs_scope_support_to_text_and_record_pdf_skips(self):
+        doc = " ".join((ROOT / "RM_FORK.md").read_text(encoding="utf-8").split())
+        self.assertTrue("PDF routes are outside the RM PoC contract and are not attested or supported" in doc,
+                        "pdf_scope_must_be_explicit")
+        self.assertTrue("other PDF/UI routes retain upstream behaviour" not in doc,
+                        "no_unverified_pdf_behavior_claim")
+        self.assertTrue("10 dependency-gated tests remain skipped" in doc,
+                        "dependency_skips_must_be_explicit")
+        guidance = " ".join((ROOT / "CLAUDE.md").read_text(encoding="utf-8").split())
+        self.assertTrue("la risposta non ha `mapping`" not in guidance,
+                        "mapping_off_keeps_empty_mapping_field")
+        self.assertTrue("`source_text` continua a tornare" not in guidance,
+                        "mapping_off_omits_source_text")
+
+    def test_pdf_patterns_still_merge_forms_outside_text_contract(self):
+        path = ROOT / "src/app/pdf_export.py"
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        namespace = {"re": re}
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target = node.targets[0]
+                if isinstance(target, ast.Name) and target.id in {"_HYPHEN_BREAK", "_UNANCHORED_MIN_ALNUM"}:
+                    namespace[target.id] = ast.literal_eval(node.value)
+        module = ast.Module(body=definitions(path, {"_norm", "_value_pattern"}), type_ignores=[])
+        exec(compile(module, str(path), "exec"), namespace)
+        forms = ["Mario Rossi", "MARIO ROSSI", "Mario  Rossi"]
+        patterns = [namespace["_value_pattern"](value) for value in forms]
+        self.same(len({(p.pattern, p.flags) for p in patterns}), 1, "pdf_still_normalizes_patterns")
+        self.assertTrue(all(pattern.fullmatch(value) for pattern in patterns for value in forms),
+                        "pdf_variants_share_matches")
+        app = load_app()
+        fixed_candidates(app, [entity(0, 11), entity(14, 25), entity(28, 40)])
+        out = app["analyze"](" | ".join(forms))
+        self.same(list(out["mapping"].values()), forms, "text_mappings_remain_distinct")
 
     def test_fixed_surface_vectors(self):
         for case in VECTORS:

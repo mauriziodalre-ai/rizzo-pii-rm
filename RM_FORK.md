@@ -21,12 +21,22 @@ The `rm-exact-surface-v1` contract changes only these behaviours:
   `src/app/rm_fork_identity.py`.
 
 Span selection, word-boundary handling, overlap priority, chunk offsets, regex
-detectors, PDF modules, preference handling, tag inventory, upstream version
-strings and dependencies are unchanged. Model weights and training are
+detectors, preference handling, tag inventory, upstream version strings and
+dependencies are unchanged. The unused text `_norm` helper was removed; PDF
+matching retains its separate normalization helper and unchanged algorithm.
+Model weights and training are
 unchanged; the RM integration continues to pin model revision
 `a1c3c83827eca22e9675e30c1111c4641caf5901` separately. This patch does not promise
-detection recall or change which spans upstream chooses to mask. JSON text is
-the proof-of-concept interface; other PDF/UI routes retain upstream behaviour.
+detection recall or change which spans upstream chooses to mask.
+
+RM release support covers JSON text `POST /analyze` and its additive health
+identity only. PDF routes are outside the RM PoC contract and are not attested
+or supported. Their route/API and algorithm source are unchanged, but changed
+text mappings can indirectly change PDF placeholder selection and `not_found`
+behaviour: distinct case/spacing values still produce equivalent normalized PDF
+search patterns. No unchanged-PDF-behaviour claim is made. PDF export, preview,
+document-cache and desktop/UI workflows require separate design and runtime
+verification before any RM support. The RM proxy exposes none of those routes.
 
 ## Offline tests
 
@@ -45,8 +55,13 @@ global offsets and duplicate detections from overlapping chunks. It does not
 import the model startup path, download models, perform inference or start a
 server. Fixed vectors and independent one-pass restoration check UTF-8 byte
 equality. Assertion failures use stable codes rather than text/mapping dumps.
-The existing suite may skip dependency-gated tests in this stdlib environment;
-report skips explicitly instead of claiming full runtime coverage.
+In the reviewed stdlib environment, 10 dependency-gated tests remain skipped:
+one time/app test, two PDF layout tests, three password-protected PDF/app tests,
+two source-text/app tests and two TSV/app tests. PyMuPDF/full-app PDF tests were
+not run. The additional AST-only characterization proves that actual PDF search
+patterns still collapse case/spacing variants while the text mappings remain
+distinct; it does not import PyMuPDF, exercise PDF redaction or attest PDF safety.
+Report skips explicitly instead of claiming full runtime coverage.
 
 ## Provenance, licensing and runtime gates
 

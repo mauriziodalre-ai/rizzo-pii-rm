@@ -18,7 +18,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "src/app/app.py"
 FUNCTIONS = {
-    "_is_word", "_merge", "_norm", "chunk_text", "detect_model", "analyze",
+    "_is_word", "_merge", "chunk_text", "detect_model", "analyze",
     "analyze_route", "health",
 }
 CONSTANTS = {"MAX_WORDS", "OVERLAP", "APP_VERSION", "APP_MODEL_VERSION", "TAGS"}

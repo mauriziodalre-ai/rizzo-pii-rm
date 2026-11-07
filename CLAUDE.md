@@ -7,6 +7,14 @@ delle cartelle in **[README.md](README.md)**. Documenti di dettaglio:
 **[docs/TRAINING.md](docs/TRAINING.md)** (unione dei due dataset HF, accortezze sui tag,
 iperparametri).
 
+## Ambito del fork RM
+
+Il contratto RM supporta solo `POST /analyze` con testo JSON e l'identita' health
+additiva; vedere [RM_FORK.md](RM_FORK.md). PDF, preview, cache documenti e UI
+restano fuori dal PoC: algoritmi/API PDF invariati non implicano comportamento
+invariato, perche' i mapping testuali esatti possono interagire con il matching
+PDF normalizzato. I test PyMuPDF/app completi restano saltati senza dipendenze.
+
 ## Cos'è questo progetto
 
 Pipeline per addestrare un modello **mmBERT** (`jhu-clsp/mmBERT-base`) a fare **token
@@ -110,12 +118,12 @@ modelli in `models/<versione>/`, artefatti dei run in `experiments/<run>/`, doc 
   toggle. La legenda (descrizioni IT/EN + esempi) vive in `TAGS` in cima a `app.py`.
 - **Dizionario reversibile on/off** (`MAPPING_ENABLED`, default **on**; env `PII_MAPPING=0`, campo
   `include_mapping`): con off l'anonimizzazione è **definitiva**. Non è cosmetico — `analyze()` non
-  costruisce la mappa, la risposta non ha `mapping`, e i segmenti-entità **perdono il campo `t`**
+  costruisce la mappa, la risposta ha `mapping: {}`, e i segmenti-entità **perdono il campo `t`**
   (altrimenti il dizionario si ricostruirebbe dal payload); l'UI non scrive `pii_map` in
   localStorage e nasconde il download. La **numerazione resta** (`[FULLNAME_1]` due volte = stesso
-  soggetto): è utile all'LLM e da sola non riporta al valore. UI: switch nella card di input, ambra
-  quando è off. `source_text` continua a tornare — è il documento che hai appena mandato tu, non una
-  chiave di ripristino.
+  valore esatto con lo stesso tag): è utile all'LLM e da sola non riporta al valore.
+  UI: switch nella card di input, ambra quando è off. `source_text` viene omesso
+  quando il dizionario è disattivato.
 - `pdf_export.py` + endpoint **`POST /pdf`** — **download del PDF anonimizzato** (issue #7, punto 1),
   bottone "📄 Scarica PDF anonimizzato" nella card Risultato. Due modalità: se l'input era un **PDF**
   si fa **redazione vera** del documento originale (`apply_redactions()`: il testo esce dal content

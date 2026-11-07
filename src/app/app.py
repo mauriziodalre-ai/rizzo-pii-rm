@@ -385,10 +385,6 @@ def _merge(cands, text):
     return merged
 
 
-def _norm(s):
-    return re.sub(r"\s+", " ", s.strip()).casefold()
-
-
 def analyze(text, excluded=None, mapping_enabled=True):
     """excluded = tag da NON anonimizzare: le entita' di quel tipo vengono scartate
     prima della fusione, quindi il valore resta in chiaro nel testo di output.

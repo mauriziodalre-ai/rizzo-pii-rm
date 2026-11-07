@@ -70,7 +70,7 @@ _TRANSLATE = str.maketrans({
 
 
 def _norm(s):
-    """Spazi compressi + casefold: stessa normalizzazione usata in app.py."""
+    """Matching PDF: spazi compressi + casefold; il contratto RM testo usa valori esatti."""
     return re.sub(r"\s+", " ", (s or "").strip()).casefold()
 
 
