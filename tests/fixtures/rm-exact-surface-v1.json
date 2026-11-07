@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "contract": "rm-exact-surface-v1",
+  "cases": [
+    {
+      "id": "outer-case-spacing-repeat",
+      "text": "\t Mario Rossi | MARIO ROSSI | Mario  Rossi | Mario Rossi \r\n",
+      "entities": [
+        {"label":"FULLNAME","start":2,"end":13,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":16,"end":27,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":30,"end":42,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":45,"end":56,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {
+        "anonymized_text": "\t [FULLNAME_1] | [FULLNAME_2] | [FULLNAME_3] | [FULLNAME_1] \r\n",
+        "mapping": {"[FULLNAME_1]":"Mario Rossi","[FULLNAME_2]":"MARIO ROSSI","[FULLNAME_3]":"Mario  Rossi"}
+      }
+    },
+    {
+      "id": "tab-nbsp-double-space",
+      "text": "Mario\tRossi | Mario\u00a0Rossi | Mario  Rossi | Mario\tRossi",
+      "entities": [
+        {"label":"FULLNAME","start":0,"end":11,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":14,"end":25,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":28,"end":40,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":43,"end":54,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {
+        "anonymized_text": "[FULLNAME_1] | [FULLNAME_2] | [FULLNAME_3] | [FULLNAME_1]",
+        "mapping": {"[FULLNAME_1]":"Mario\tRossi","[FULLNAME_2]":"Mario\u00a0Rossi","[FULLNAME_3]":"Mario  Rossi"}
+      }
+    },
+    {
+      "id": "unicode-composition",
+      "text": "José | Jose\u0301 | José",
+      "entities": [
+        {"label":"FULLNAME","start":0,"end":4,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":7,"end":12,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":15,"end":19,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {"anonymized_text":"[FULLNAME_1] | [FULLNAME_2] | [FULLNAME_1]","mapping":{"[FULLNAME_1]":"José","[FULLNAME_2]":"Jose\u0301"}}
+    },
+    {
+      "id": "punctuation-quotes-backslash-crlf",
+      "text": "\"Mario Rossi\",\\\r\nMario Rossi!",
+      "entities": [
+        {"label":"FULLNAME","start":1,"end":12,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":17,"end":28,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {"anonymized_text":"\"[FULLNAME_1]\",\\\r\n[FULLNAME_1]!","mapping":{"[FULLNAME_1]":"Mario Rossi"}}
+    },
+    {
+      "id": "no-detections",
+      "text": " \tNessun dato.\r\n ",
+      "entities": [],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {"anonymized_text":" \tNessun dato.\r\n ","mapping":{}}
+    },
+    {
+      "id": "excluded-name",
+      "text": "Mario Rossi / Roma",
+      "entities": [
+        {"label":"FULLNAME","start":0,"end":11,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"CITY","start":14,"end":18,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": ["FULLNAME"],
+      "mappingEnabled": true,
+      "expected": {"anonymized_text":"Mario Rossi / [CITY_1]","mapping":{"[CITY_1]":"Roma"}}
+    },
+    {
+      "id": "mapping-disabled",
+      "text": "Mario Rossi | MARIO ROSSI",
+      "entities": [
+        {"label":"FULLNAME","start":0,"end":11,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"FULLNAME","start":14,"end":25,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": false,
+      "expected": {"anonymized_text":"[FULLNAME_1] | [FULLNAME_2]","mapping":{}}
+    },
+    {
+      "id": "same-value-different-tags",
+      "text": "Roma / Roma",
+      "entities": [
+        {"label":"CITY","start":0,"end":4,"score":0.9,"validated":false,"source":"modello"},
+        {"label":"ORG","start":7,"end":11,"score":0.9,"validated":false,"source":"modello"}
+      ],
+      "excluded": [],
+      "mappingEnabled": true,
+      "expected": {"anonymized_text":"[CITY_1] / [ORG_1]","mapping":{"[CITY_1]":"Roma","[ORG_1]":"Roma"}}
+    }
+  ]
+}

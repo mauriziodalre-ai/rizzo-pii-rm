@@ -60,6 +60,8 @@ from flask import (Flask, jsonify, render_template_string, request,
 import pdf_export
 import pdf_text
 import server_config
+from rm_fork_identity import (RM_FORK_REPOSITORY, RM_SURFACE_CONTRACT,
+                              RM_UPSTREAM_COMMIT)
 # Rete REGEX + CHECKSUM: modulo a parte, senza dipendenze dal modello. I nomi
 # restano importabili da qui (`app.detect_regex`) per non rompere chi li usa.
 from detectors import (DETECTORS, SOFT_REGEX_LABELS, cf_ok,  # noqa: F401
@@ -394,8 +396,8 @@ def analyze(text, excluded=None, mapping_enabled=True):
     mapping_enabled=False -> anonimizzazione DEFINITIVA: nessun dizionario
     placeholder->valore, e i segmenti-entita' non riportano il testo originale
     (che altrimenti permetterebbe di ricostruire il dizionario dalla risposta).
-    La numerazione dei placeholder resta: dice che due occorrenze sono lo stesso
-    soggetto, ma da sola non fa risalire al valore."""
+    La numerazione dei placeholder resta: dice che due occorrenze hanno lo stesso
+    valore esatto, ma da sola non fa risalire al valore."""
     excluded = set(excluded or ())
     model_ents, n_chunks = detect_model(text)
     # il modello taglia i minuti delle ore: la regex dell'ora completa SOLO le sue span TIME
@@ -405,11 +407,11 @@ def analyze(text, excluded=None, mapping_enabled=True):
         cands = [e for e in cands if e["label"] not in excluded]
     kept = _merge(cands, text)
 
-    # ID reversibili: stesso (label, valore-normalizzato) -> stesso placeholder.
+    # ID reversibili: stesso (label, valore esatto) -> stesso placeholder.
     counters, seen, mapping = {}, {}, {}
     for e in kept:
         val = text[e["start"]:e["end"]]
-        key = (e["label"], _norm(val))
+        key = (e["label"], val)
         if key in seen:
             e["ph"] = seen[key]
         else:
@@ -506,6 +508,9 @@ def health():
         "tags": len(TAG_NAMES),
         "excluded_tags": excl,
         "mapping_enabled": mapping,
+        "rm_fork_repository": RM_FORK_REPOSITORY,
+        "rm_upstream_commit": RM_UPSTREAM_COMMIT,
+        "rm_surface_contract": RM_SURFACE_CONTRACT,
     }
     return jsonify(body), (200 if ready else 503)
 
@@ -592,8 +597,10 @@ def analyze_route():
         raw_excl = payload.get("exclude_tags")
         raw_map = payload.get("include_mapping")
 
-    text = (text or "").strip()
-    if not text:
+    text = text or ""
+    if up is not None:
+        text = text.strip()
+    if not text.strip():
         return jsonify({"error": "Nessun testo da analizzare."}), 400
 
     # override per-richiesta; senza override vale la configurazione del server
