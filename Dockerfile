@@ -1,5 +1,5 @@
 # ============================================================================
-# Rizzo PII — webapp (server Flask + UI) in un container.
+# Rizzo PII — servizio Flask testuale in un container.
 #
 # L'immagine e' AUTOSUFFICIENTE: dentro ci sono le dipendenze CPU e il modello
 # scaricato da Hugging Face in fase di build. A runtime NON esce nulla verso
@@ -10,8 +10,7 @@
 #   docker run --rm -p 5005:5005 rizzo-pii        # -> http://127.0.0.1:5005
 #
 # NB: e' un'immagine CPU. Per la GPU servirebbe il torch cu128 + nvidia-runtime;
-# per l'inferenza su un documento la CPU basta (vedi README, sezione Deployment).
-# Per la build dei bundle Linux (.deb/.AppImage) c'e' Dockerfile.linux, altra cosa.
+# per l'inferenza testuale la CPU basta (vedi README, sezione Deployment).
 # ============================================================================
 FROM python:3.11-slim AS base
 
@@ -32,10 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # torch e transformers PINNATI alle versioni con cui l'immagine e' stata verificata:
 # senza pin la stessa build fra sei mesi tira una major diversa e "funzionava ieri"
 # diventa un bug da riprodurre. Per aggiornarli: alza i numeri e ricostruisci.
-# (NB: transformers 5.x qui, mentre Dockerfile.linux resta sul 4.57.3 di PyInstaller.)
 RUN pip install --upgrade pip \
  && pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.13.0" \
- && pip install "transformers==5.14.1" tokenizers safetensors flask pymupdf gunicorn huggingface_hub
+ && pip install "transformers==5.14.1" tokenizers safetensors flask gunicorn huggingface_hub
 
 # --- modello -----------------------------------------------------------------
 # app.py con APP_MODEL_VERSION="1.5.0" cerca models/rizzo-pii-0.3B-v1.5.0/ a partire
@@ -48,13 +46,14 @@ local_dir='/app/models/rizzo-pii-0.3B-v1.5.0', \
 allow_patterns=['*.json','*.safetensors','*.txt','*.model'])"
 
 # --- applicazione ------------------------------------------------------------
-# Solo src/app: il resto della repo (training, data pipeline, dataset) non serve
-# a servire l'app e ogni file in piu' e' un layer che si invalida per niente.
+# Copia soltanto il runtime testuale. I moduli PDF/UI storici restano nel
+# repository per provenienza, ma non entrano nell'immagine RM.
 WORKDIR /app
-COPY src/app/ /app/src/app/
+COPY src/app/app.py src/app/detectors.py src/app/server_config.py \
+     src/app/rm_fork_identity.py /app/src/app/
 
-# utente non-root; la home deve essere scrivibile perche' server_config scrive
-# config.json/prefs.json in ~/.local/share/rizzo-pii (preferenze dell'UI).
+# utente non-root; la home resta disponibile per le preferenze read-only
+# compatibili con il profilo RM.
 RUN useradd --create-home --uid 10001 app && chown -R app:app /app
 USER app
 ENV HOME=/home/app
@@ -75,5 +74,5 @@ sys.exit(0 if urllib.request.urlopen(f\"http://127.0.0.1:{os.environ['PII_PORT']
 
 # 1 worker: il modello sta in memoria una volta sola (ogni worker sarebbe una
 # copia da ~1.2 GB). Il parallelismo lo danno i thread. timeout alto perche' un
-# PDF lungo e' minuti di inferenza CPU, non secondi.
+# un testo lungo puo' richiedere minuti di inferenza CPU, non secondi.
 CMD ["sh", "-c", "exec gunicorn --chdir /app/src/app --bind ${PII_HOST}:${PII_PORT} --workers 1 --threads 4 --timeout 600 --graceful-timeout 30 --access-logfile - --error-logfile - app:app"]

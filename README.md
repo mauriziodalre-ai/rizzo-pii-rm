@@ -1,3 +1,10 @@
+> **RM text-only fork:** this branch publishes only the containerized JSON text
+> service documented in [RM_FORK.md](RM_FORK.md). RISKMaiSTER performs PDF/DOCX
+> extraction before calling it. Desktop installers, upload/PDF/UI routes and
+> PyMuPDF are intentionally excluded. The upstream material below is retained
+> for model provenance and historical context; its desktop/build instructions
+> do not apply to this RM release.
+
 <div align="center">
 
 <img src="report/images/mascot_shield.png" alt="rizzo-pii mascot — a purple hedgehog guarding a document with a shield" width="180" />

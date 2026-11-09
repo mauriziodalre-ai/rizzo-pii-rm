@@ -57,6 +57,7 @@ def load_app():
         "_get_prefs": lambda: ([], True),
         "MODEL_DIR": "/synthetic/model/a1c3c83827eca22e9675e30c1111c4641caf5901",
         "device": -1,
+        "RM_RUNTIME_PROFILE": "rm-text-only-v1",
     }
     tree = ast.parse(APP.read_text(encoding="utf-8"), filename=str(APP))
     found = set()
@@ -87,11 +88,9 @@ def fixed_candidates(app, entities):
     app["detect_regex"] = lambda text: []
 
 
-def post(app, payload=None, *, upload_text=None, form=None):
-    """Invoke the actual route with request/file dependencies, without HTTP."""
-    app["request"] = SimpleNamespace(get_json=lambda silent: payload, form=form or {})
-    app["_uploaded_file"] = lambda: None if upload_text is None else object()
-    app["_extract_upload"] = lambda upload: upload_text
+def post(app, payload=None):
+    """Invoke the actual JSON-only route without HTTP."""
+    app["request"] = SimpleNamespace(get_json=lambda silent: payload)
     result = app["analyze_route"]()
     return result if isinstance(result, tuple) else (result, 200)
 

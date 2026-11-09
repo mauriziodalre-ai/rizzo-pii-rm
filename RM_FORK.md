@@ -10,20 +10,19 @@ assert that a release has been published or approved for runtime use.
 The `rm-exact-surface-v1` contract changes only these behaviours:
 
 - Nonblank JSON `POST /analyze` input retains leading and trailing whitespace.
-  Blank input still returns 400; uploaded text keeps its existing trim behaviour.
+  Blank input still returns 400. Multipart and document uploads are unsupported.
 - The actual selected substring and tag determine each placeholder. Case,
   whitespace and Unicode composition variants receive distinct placeholders;
   repeated identical values with the same tag reuse their placeholder. Mapping
   values remain exact source slices. Mapping-disabled output still returns an
   empty mapping and omits source text and original entity preview values.
-- `/health` and `/healthz` retain existing fields/statuses and add
-  `rm_fork_repository`, `rm_upstream_commit` and `rm_surface_contract` from
+- `/health` and `/healthz` retain existing fields/statuses and add the immutable
+  RM fork, span-contract and text-only runtime-profile identity fields from
   `src/app/rm_fork_identity.py`.
 
 Span selection, word-boundary handling, overlap priority, chunk offsets, regex
-detectors, preference handling, tag inventory, upstream version strings and
-dependencies are unchanged. The unused text `_norm` helper was removed; PDF
-matching retains its separate normalization helper and unchanged algorithm.
+detectors, preference handling, tag inventory and upstream version strings are
+unchanged. The unused text `_norm` helper was removed.
 Model weights and training are
 unchanged; the RM integration continues to pin model revision
 `a1c3c83827eca22e9675e30c1111c4641caf5901` separately. This patch does not promise
@@ -43,14 +42,25 @@ normalized. Blank input still returns 400.
 unchanged. `/health` and `/healthz` add `rm_span_contract` alongside the existing
 fork identity fields.
 
-RM release support covers JSON text `POST /analyze`, `POST /rm/spans` and their
-additive health identity only. PDF routes are outside the RM PoC contract and
-are not attested or supported. Their route/API and algorithm source are unchanged, but changed
-text mappings can indirectly change PDF placeholder selection and `not_found`
-behaviour: distinct case/spacing values still produce equivalent normalized PDF
-search patterns. No unchanged-PDF-behaviour claim is made. PDF export, preview,
-document-cache and desktop/UI workflows require separate design and runtime
-verification before any RM support. The RM proxy exposes none of those routes.
+RM release support covers JSON text `POST /analyze`, `POST /rm/spans`, read-only
+`GET /settings` and their additive health identity only. PDF, document-upload
+and UI routes are closed by the RM text-only boundary before route dispatch and
+their runtime handlers have been removed. Multipart requests, settings mutation,
+configuration routes, document caches and PDF export/preview are absent. PyMuPDF
+is not installed or loaded; the runtime also does not import `pdf_export` or
+`pdf_text`. Non-JSON text calls receive a fixed 415; unavailable routes and
+methods receive a fixed 404. `HEAD` is retained only for health probes. Read-only
+settings omit the host preference path. Health exposes
+`rm_runtime_profile=rm-text-only-v1` so the proxy
+can refuse an older full-document image. The dormant upstream PDF source remains
+in the published history only for auditability and is not part of the RM runtime
+contract.
+
+This RM release publishes only the containerized text service. Upstream
+Windows/macOS/Linux desktop and Tauri packaging definitions are intentionally
+removed: their browser UI depends on the retired document routes and must not be
+distributed from this branch. The container copies an explicit four-file runtime
+allowlist, so dormant PDF helpers do not enter the image.
 
 ## Offline tests
 
@@ -69,13 +79,10 @@ global offsets and duplicate detections from overlapping chunks. It does not
 import the model startup path, download models, perform inference or start a
 server. Fixed vectors and independent one-pass restoration check UTF-8 byte
 equality. Assertion failures use stable codes rather than text/mapping dumps.
-In the reviewed stdlib environment, 10 dependency-gated tests remain skipped:
-one time/app test, two PDF layout tests, three password-protected PDF/app tests,
-two source-text/app tests and two TSV/app tests. PyMuPDF/full-app PDF tests were
-not run. The additional AST-only characterization proves that actual PDF search
-patterns still collapse case/spacing variants while the text mappings remain
-distinct; it does not import PyMuPDF, exercise PDF redaction or attest PDF safety.
-Report skips explicitly instead of claiming full runtime coverage.
+Document-upload and PDF-runtime tests are intentionally excluded from this
+release because those surfaces no longer exist. Dependency-gated model/app tests
+that remain in the suite are reported explicitly rather than being represented
+as runtime coverage.
 
 ## Provenance, licensing and runtime gates
 
@@ -85,8 +92,9 @@ publishing. Exact release commit, source archive hash, changed-file hashes,
 test evidence and notice hashes belong in the external RM provenance record;
 the identity module deliberately does not embed its own eventual commit hash.
 
-The upstream model/dependency licences, including PyMuPDF and the actual
-resolved dependency inventory, require a separate owner decision. Source
+The upstream model and actual resolved text-runtime dependency inventory require
+a separate owner decision. PyMuPDF is excluded from the RM runtime rather than
+accepted as an unused dependency. Source
 publication is not a legal or commercial runtime verdict. The RM
 `liveRunAllowed` gate stays false until separately approved. Health identity
 strings are declarations, not immutable source/runtime attestation; the RM

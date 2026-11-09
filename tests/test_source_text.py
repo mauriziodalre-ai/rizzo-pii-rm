@@ -21,7 +21,7 @@ from test_ora import APP  # noqa: E402  (stesso caricamento di app coi pesi fint
 TESTO = "Mario Rossi, IBAN IT60X0542811101000000123456"
 
 
-@unittest.skipIf(APP is None, "app.py non importabile (torch/flask/fitz assenti)")
+@unittest.skipIf(APP is None, "app.py non importabile (torch/transformers/flask assenti)")
 class SourceText(unittest.TestCase):
     def _post(self, **extra):
         with patch.object(APP, "nlp", lambda chunks: [[] for _ in chunks]):

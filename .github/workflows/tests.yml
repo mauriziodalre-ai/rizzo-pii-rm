@@ -34,9 +34,22 @@ jobs:
 
       # Nessun pip install: la suite in tests/ gira sulla sola libreria
       # standard. I generatori di dati (src/data_pipeline/) non hanno
-      # dipendenze e src/app/detectors.py non importa torch/transformers/fitz,
+      # dipendenze e src/app/detectors.py non importa torch/transformers,
       # quindi la rete regex+checksum e' verificabile senza il modello.
       # Installare torch qui costerebbe minuti e gigabyte per zero copertura
       # in piu': l'inferenza del modello non e' sotto test.
       - name: unittest discover
         run: python -m unittest discover -v tests
+
+  text-runtime-http-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install the only HTTP-test dependency
+        run: pip install --no-cache-dir 'flask==3.1.2'
+      - name: Verify the real Flask route boundary
+        run: python -m unittest tests.test_rm_text_only_runtime -v

@@ -1,13 +1,11 @@
-# Contesto di build minimo. Dockerfile (webapp) copia solo src/app/ e scarica il
-# modello da HF; Dockerfile.linux non fa nessun COPY (sorgenti e modello si
-# montano con -v a runtime), quindi qui si taglia tutto il resto: senza queste
-# righe il daemon si porterebbe dietro modelli e dataset, GB per niente.
-
-# tutto, poi si riammette a mano il minimo indispensabile
-*
+# Contesto RM deny-by-default: soltanto il Dockerfile e i quattro moduli copiati.
+**
+!Dockerfile
+!src/
+src/**
 !src/app/
-
-# roba pesante o rigenerabile che NON deve rientrare nemmeno via src/app/
-**/__pycache__/
-**/*.pyc
-src/app/assets/**/*.psd
+src/app/**
+!src/app/app.py
+!src/app/detectors.py
+!src/app/server_config.py
+!src/app/rm_fork_identity.py

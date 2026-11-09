@@ -18,7 +18,7 @@ non dipende da cosa il modello predice oggi.
 
 Nomi, codici fiscali e date sono SINTETICI.
 
-Questo modulo importa `app.py`, che tira dentro torch/transformers/flask/fitz:
+Questo modulo importa `app.py`, che tira dentro torch/transformers/flask:
 se mancano, il test si salta invece di fallire. La CI non li installa apposta
 (minuti e gigabyte per zero copertura sull'inferenza), quindi li' non gira; in
 locale, con l'ambiente dell'app, si'.
@@ -78,7 +78,7 @@ def _carica_app():
     return pii_app
 
 
-try:                                    # torch/transformers/flask/fitz presenti?
+try:                                    # torch/transformers/flask presenti?
     APP = _carica_app()
 except Exception:                       # noqa: BLE001 - qualunque import mancante
     APP = None
@@ -115,7 +115,7 @@ def _frammenti_del_modello(text):
     return ents
 
 
-@unittest.skipIf(APP is None, "serve l'ambiente dell'app (torch/transformers/flask/fitz)")
+@unittest.skipIf(APP is None, "serve l'ambiente dell'app (torch/transformers/flask)")
 class AllineamentoTsv(unittest.TestCase):
     """Con le entita' frammentate come nel bug, il documento resta allineato."""
 

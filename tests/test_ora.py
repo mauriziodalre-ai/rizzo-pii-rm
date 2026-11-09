@@ -72,7 +72,7 @@ def _carica_app():
     return pii_app
 
 
-try:                                    # torch/transformers/flask/fitz presenti?
+try:                                    # torch/transformers/flask presenti?
     APP = _carica_app()
 except Exception:                       # noqa: BLE001 - qualunque import mancante
     APP = None
@@ -127,7 +127,7 @@ class CompletaOra(unittest.TestCase):
             [e for e in detectors.detect_regex("ore 18:28") if e["label"] == "TIME"], [])
 
 
-@unittest.skipIf(APP is None, "app.py non importabile (torch/flask/fitz assenti)")
+@unittest.skipIf(APP is None, "app.py non importabile (torch/transformers/flask assenti)")
 class OraInAnalyze(unittest.TestCase):
     """La pipeline completa: il modello (finto) taglia i minuti, l'output no."""
 
