@@ -29,9 +29,23 @@ unchanged; the RM integration continues to pin model revision
 `a1c3c83827eca22e9675e30c1111c4641caf5901` separately. This patch does not promise
 detection recall or change which spans upstream chooses to mask.
 
-RM release support covers JSON text `POST /analyze` and its additive health
-identity only. PDF routes are outside the RM PoC contract and are not attested
-or supported. Their route/API and algorithm source are unchanged, but changed
+The additive `rm-span-surface-v1` contract exposes only `POST /rm/spans` for
+JSON text input. It executes the same model, regex/checksum, exclusion, overlap,
+whitespace-trim and word-boundary path that `/analyze` uses before placeholder
+creation. The response contains Python code-point offsets, tag, score, source,
+the SHA-256 of the exact received UTF-8 text and the contract identifier. It
+contains no source text, mapping, placeholder, anonymized text, preview or
+detected value. Regex spans report a null score; model spans report the selected
+model score. Leading/trailing whitespace and Unicode composition are not
+normalized. Blank input still returns 400.
+
+`/analyze`, its response and the existing `rm-exact-surface-v1` contract remain
+unchanged. `/health` and `/healthz` add `rm_span_contract` alongside the existing
+fork identity fields.
+
+RM release support covers JSON text `POST /analyze`, `POST /rm/spans` and their
+additive health identity only. PDF routes are outside the RM PoC contract and
+are not attested or supported. Their route/API and algorithm source are unchanged, but changed
 text mappings can indirectly change PDF placeholder selection and `not_found`
 behaviour: distinct case/spacing values still produce equivalent normalized PDF
 search patterns. No unchanged-PDF-behaviour claim is made. PDF export, preview,

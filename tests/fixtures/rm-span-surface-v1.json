@@ -1,0 +1,30 @@
+{
+  "contract": "rm-span-surface-v1",
+  "cases": [
+    {
+      "id": "outer-whitespace",
+      "text": " \tMario Rossi\r\n",
+      "entities": [
+        {"label": "FULLNAME", "start": 2, "end": 13, "score": 0.98, "validated": false, "source": "modello"}
+      ],
+      "values": ["Mario Rossi"]
+    },
+    {
+      "id": "unicode-codepoints",
+      "text": "😀 Zoë Bianchi e José Rossi",
+      "entities": [
+        {"label": "FULLNAME", "start": 2, "end": 13, "score": 0.96, "validated": false, "source": "modello"},
+        {"label": "FULLNAME", "start": 16, "end": 27, "score": 0.94, "validated": false, "source": "modello"}
+      ],
+      "values": ["Zoë Bianchi", "José Rossi"]
+    },
+    {
+      "id": "regex-source",
+      "text": "Contatto jane@example.com.",
+      "entities": [
+        {"label": "EMAIL", "start": 9, "end": 25, "score": 1.0, "validated": false, "source": "regex"}
+      ],
+      "values": ["jane@example.com"]
+    }
+  ]
+}

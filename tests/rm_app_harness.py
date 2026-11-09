@@ -8,6 +8,7 @@ detections or fake nlp outputs at the inference boundary.
 import ast
 import bisect
 import copy
+import hashlib
 import importlib.util
 import os
 from pathlib import Path
@@ -18,8 +19,8 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "src/app/app.py"
 FUNCTIONS = {
-    "_is_word", "_merge", "chunk_text", "detect_model", "analyze",
-    "analyze_route", "health",
+    "_is_word", "_merge", "chunk_text", "detect_model", "detect_spans", "analyze",
+    "analyze_route", "span_route", "health",
 }
 CONSTANTS = {"MAX_WORDS", "OVERLAP", "APP_VERSION", "APP_MODEL_VERSION", "TAGS"}
 
@@ -45,7 +46,7 @@ def load_app():
     exec(compile(ast.Module(body=definitions(config_path, {"parse_tag_list", "parse_bool"}),
                             type_ignores=[]), str(config_path), "exec"), config)
     namespace = {
-        "bisect": bisect, "re": re, "os": os,
+        "bisect": bisect, "re": re, "os": os, "hashlib": hashlib,
         "SOFT_REGEX_LABELS": detectors.SOFT_REGEX_LABELS,
         "complete_time": detectors.complete_time,
         "detect_regex": detectors.detect_regex,
@@ -92,6 +93,13 @@ def post(app, payload=None, *, upload_text=None, form=None):
     app["_uploaded_file"] = lambda: None if upload_text is None else object()
     app["_extract_upload"] = lambda upload: upload_text
     result = app["analyze_route"]()
+    return result if isinstance(result, tuple) else (result, 200)
+
+
+def post_spans(app, payload=None):
+    """Invoke the RM span route without HTTP or Flask startup."""
+    app["request"] = SimpleNamespace(get_json=lambda silent: payload)
+    result = app["span_route"]()
     return result if isinstance(result, tuple) else (result, 200)
 
 

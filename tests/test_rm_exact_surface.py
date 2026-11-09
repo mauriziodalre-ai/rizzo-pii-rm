@@ -150,6 +150,7 @@ class ExactSurface(unittest.TestCase):
             "rm_fork_repository": "https://github.com/mauriziodalre-ai/rizzo-pii-rm",
             "rm_upstream_commit": "9057eeff88bdf0444e5d3361cf0766b60c5b8a95",
             "rm_surface_contract": "rm-exact-surface-v1",
+            "rm_span_contract": "rm-span-surface-v1",
         }
         body, status = app["health"]()
         self.same(status, 200, "ready_status")

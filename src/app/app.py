@@ -44,6 +44,7 @@ Preferenze di anonimizzazione (precedenza): campo nella richiesta > CLI --exclud
 """
 
 import bisect
+import hashlib
 import os
 import re
 import secrets
@@ -60,8 +61,8 @@ from flask import (Flask, jsonify, render_template_string, request,
 import pdf_export
 import pdf_text
 import server_config
-from rm_fork_identity import (RM_FORK_REPOSITORY, RM_SURFACE_CONTRACT,
-                              RM_UPSTREAM_COMMIT)
+from rm_fork_identity import (RM_FORK_REPOSITORY, RM_SPAN_CONTRACT,
+                              RM_SURFACE_CONTRACT, RM_UPSTREAM_COMMIT)
 # Rete REGEX + CHECKSUM: modulo a parte, senza dipendenze dal modello. I nomi
 # restano importabili da qui (`app.detect_regex`) per non rompere chi li usa.
 from detectors import (DETECTORS, SOFT_REGEX_LABELS, cf_ok,  # noqa: F401
@@ -385,6 +386,18 @@ def _merge(cands, text):
     return merged
 
 
+def detect_spans(text, excluded=None):
+    """Return the exact merged entity list used by text anonymization."""
+    excluded = set(excluded or ())
+    model_ents, n_chunks = detect_model(text)
+    # il modello taglia i minuti delle ore: la regex dell'ora completa SOLO le sue span TIME
+    complete_time(model_ents, text)
+    cands = model_ents + detect_regex(text)
+    if excluded:
+        cands = [e for e in cands if e["label"] not in excluded]
+    return _merge(cands, text), n_chunks
+
+
 def analyze(text, excluded=None, mapping_enabled=True):
     """excluded = tag da NON anonimizzare: le entita' di quel tipo vengono scartate
     prima della fusione, quindi il valore resta in chiaro nel testo di output.
@@ -395,13 +408,7 @@ def analyze(text, excluded=None, mapping_enabled=True):
     La numerazione dei placeholder resta: dice che due occorrenze hanno lo stesso
     valore esatto, ma da sola non fa risalire al valore."""
     excluded = set(excluded or ())
-    model_ents, n_chunks = detect_model(text)
-    # il modello taglia i minuti delle ore: la regex dell'ora completa SOLO le sue span TIME
-    complete_time(model_ents, text)
-    cands = model_ents + detect_regex(text)
-    if excluded:
-        cands = [e for e in cands if e["label"] not in excluded]
-    kept = _merge(cands, text)
+    kept, n_chunks = detect_spans(text, excluded)
 
     # ID reversibili: stesso (label, valore esatto) -> stesso placeholder.
     counters, seen, mapping = {}, {}, {}
@@ -507,6 +514,7 @@ def health():
         "rm_fork_repository": RM_FORK_REPOSITORY,
         "rm_upstream_commit": RM_UPSTREAM_COMMIT,
         "rm_surface_contract": RM_SURFACE_CONTRACT,
+        "rm_span_contract": RM_SPAN_CONTRACT,
     }
     return jsonify(body), (200 if ready else 503)
 
@@ -613,6 +621,35 @@ def analyze_route():
     if keep_map:
         out["source_text"] = text
     return jsonify(out)
+
+
+@app.route("/rm/spans", methods=["POST"])
+def span_route():
+    """RM text-only exact code-point span surface; never returns source values."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or set(payload) != {"text", "exclude_tags"}:
+        return jsonify({"error": "Richiesta non valida."}), 400
+    text = payload.get("text")
+    raw_excluded = payload.get("exclude_tags")
+    if (not isinstance(text, str) or not text.strip()
+            or not isinstance(raw_excluded, list)
+            or not all(isinstance(tag, str) for tag in raw_excluded)):
+        return jsonify({"error": "Nessun testo da analizzare."}), 400
+    excluded = server_config.parse_tag_list(raw_excluded)
+    kept, _n_chunks = detect_spans(text, excluded)
+    spans = [{
+        "start": entity["start"],
+        "end": entity["end"],
+        "tag": entity["label"],
+        "score": None if entity["source"] == "regex" else float(entity["score"]),
+        "source": "regex" if entity["source"] == "regex" else "model",
+    } for entity in kept]
+    return jsonify({
+        "contract": RM_SPAN_CONTRACT,
+        "offset_unit": "codepoint",
+        "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "spans": spans,
+    })
 
 
 # --------------------------------------------------------------------------- #
